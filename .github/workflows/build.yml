@@ -13,20 +13,20 @@ jobs:
 
       - name: Build Container Image
         id: build-image
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: mi-ubuntu-inmutable
           tags: latest
           containerfiles: |
             ./Containerfile
 
-      - name: Convert Container to ISO
+      - name: Convert Container to ISO via Bootc Builder
         run: |
           mkdir -p output
           docker run --rm --privileged \
-            -v /var/lib/docker:/var/lib/docker \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
             -v $(pwd)/output:/output \
-            registry.redhat.io/rhel9/bootc-image-builder:latest \
+            ghcr.io/osbuild/bootc-image-builder:latest \
             --type iso \
             localhost/mi-ubuntu-inmutable:latest
 
