@@ -1,4 +1,4 @@
-name: Build Immutable ISO
+name: Build My Immutable ISO
 on:
   push:
     branches: [ main ]
@@ -11,20 +11,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Container Image
-        id: build-image
-        uses: redhat-actions/buildah-build@v3
+        uses: docker/build-push-action@v6
         with:
-          image: mi-ubuntu-inmutable
-          tags: latest
-          containerfiles: |
-            ./Containerfile
+          context: .
+          file: ./Containerfile
+          tags: localhost/mi-ubuntu-inmutable:latest
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Load Image into Docker
+        run: docker load -i /tmp/image.tar
 
       - name: Convert Container to ISO via Bootc Builder
         run: |
           mkdir -p output
           docker run --rm --privileged \
-            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             -v $(pwd)/output:/output \
             ghcr.io/osbuild/bootc-image-builder:latest \
             --type iso \
