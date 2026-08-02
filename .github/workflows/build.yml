@@ -1,0 +1,37 @@
+name: Build Immutable ISO
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Container Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: mi-ubuntu-inmutable
+          tags: latest
+          containerfiles: |
+            ./Containerfile
+
+      - name: Convert Container to ISO
+        run: |
+          mkdir -p output
+          docker run --rm --privileged \
+            -v /var/lib/docker:/var/lib/docker \
+            -v $(pwd)/output:/output \
+            registry.redhat.io/rhel9/bootc-image-builder:latest \
+            --type iso \
+            localhost/mi-ubuntu-inmutable:latest
+
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ubuntu-Immutable-ISO
+          path: output/*.iso
